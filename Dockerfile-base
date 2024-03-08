@@ -1,0 +1,66 @@
+FROM ubuntu:24.04
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Update and install necessary packages
+RUN apt-get update \
+&& apt-get dist-upgrade -y \
+&& apt-get autoremove -y \
+&& apt-get autoclean -y \
+&& apt-get install -y \
+sudo \
+nano \
+wget \
+curl \
+git \
+build-essential \
+gcc \
+openjdk-21-jdk \
+mono-complete \
+python3 \
+strace \
+valgrind \
+openssl #
+
+# Create a new user with sudo privileges. Replace BRUKER and PASSWD with actual values.
+# Note: Storing passwords in Dockerfiles is not recommended for production environments.
+# Consider using Docker secrets or another secure mechanism for managing sensitive data.
+RUN useradd -G sudo -m -d /home/BRUKER -s /bin/bash -p "$(openssl passwd -1 yourpassword)" BRUKER
+
+# Switch to the newly created user
+USER BRUKER
+WORKDIR /home/BRUKER
+
+# Download and set permissions for a script
+RUN mkdir hacking \
+    && cd hacking \
+    && curl -SL https://raw.githubusercontent.com/uia-worker/is105misc/master/sem01v2/pawned.sh > pawned.sh \
+    && chmod 764 pawned.sh \
+    && cd ..
+
+# Set up Git configuration. Replace placeholders with actual values.
+RUN git config --global user.email "BRUKER" \
+    && git config --global user.name "NAVN" \
+    && git config --global url."https://KEY:@github.com/".insteadOf "https://github.com" \
+    && mkdir -p github.com/BRUKER
+
+# Switch back to the root user to install Go
+USER root
+
+# Download and install Go. Replace OS-ARCH with the actual OS and architecture, e.g., linux-amd64.
+# This command might need adjustment based on the OS and architecture of the container.
+RUN curl -SL "https://go.dev/dl/go1.21.7.linux-amd64.tar.gz" | tar xvz -C /usr/local
+
+
+# The following RUN command is a placeholder showing how you might switch back to your user
+# if you need to perform further actions as that user. This line can be modified or removed based on your needs.
+USER BRUKER
+SHELL ["/bin/bash", "-c"]
+RUN mkdir -p $HOME/go/{src,bin}
+ENV GOPATH="/home/Bruker/go"
+ENV PATH="${PATH}:${GOPATH}/bin:/usr/local/go/bin"
+
+RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf \
+| sh -s -- -y
+ENV PATH="${PATH}:${HOME}/.cargo/bin"
+
+
